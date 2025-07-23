@@ -1,0 +1,117 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="fa">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>سامانه آگهی خودرو</title>
+  <style>
+    body { font-family: Arial, sans-serif; direction: rtl; padding: 20px; }
+    .container { max-width: 600px; margin: auto; }
+    input, button, select { margin: 5px; padding: 8px; }
+    .ad { border: 1px solid #ccc; padding: 10px; margin: 10px 0; }
+    .section { margin: 20px 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>آگهی خودرو</h1>
+
+    <!-- Register/Login -->
+    <div class="section" id="auth">
+      <h2>ثبت‌نام / ورود</h2>
+      <input type="text" id="mobile" placeholder="شماره موبایل">
+      <input type="password" id="password" placeholder="رمز عبور">
+      <select id="role">
+        <option value="system_user">کاربر معمولی</option>
+        <option value="admin">ادمین</option>
+        <option value="superuser">کاربر ارشد</option>
+      </select>
+      <button onclick="register()">ثبت‌نام</button>
+      <button onclick="login()">ورود</button>
+    </div>
+
+    <!-- Create Ad -->
+    <div class="section" id="create-ad" style="display: none;">
+      <h2>ایجاد آگهی</h2>
+      <input type="number" id="car_id" placeholder="شناسه خودرو (1-4)">
+      <input type="number" id="price" placeholder="قیمت">
+      <button onclick="createAd()">ایجاد آگهی</button>
+    </div>
+
+    <!-- Create Transaction -->
+    <div class="section" id="create-transaction" style="display: none;">
+      <h2>ایجاد معامله</h2>
+      <input type="number" id="t_car_id" placeholder="شناسه خودرو (1-4)">
+      <input type="number" id="buyer_id" placeholder="شناسه خریدار">
+      <input type="number" id="seller_id" placeholder="شناسه فروشنده">
+      <input type="number" id="t_price" placeholder="قیمت">
+      <select id="status">
+        <option value="pending">در انتظار</option>
+        <option value="accepted">تأیید شده</option>
+        <option value="rejected">رد شده</option>
+        <option value="completed">کامل شده</option>
+      </select>
+      <button onclick="createTransaction()">ایجاد معامله</button>
+    </div>
+
+    <!-- Search -->
+    <div class="section">
+      <h2>جستجو</h2>
+      <input type="number" id="min_price" placeholder="حداقل قیمت">
+      <input type="number" id="max_price" placeholder="حداکثر قیمت">
+      <input type="text" id="brand" placeholder="برند (Toyota, BMW, Hyundai)">
+      <input type="text" id="color" placeholder="رنگ">
+      <select id="condition">
+        <option value="">وضعیت</option>
+        <option value="new">نو</option>
+        <option value="used">کارکرده</option>
+      </select>
+      <button onclick="searchAds()">جستجو</button>
+    </div>
+
+    <!-- Ads List -->
+    <div id="ads"></div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
